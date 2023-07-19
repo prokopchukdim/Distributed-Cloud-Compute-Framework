@@ -1,4 +1,4 @@
-package com.dccf;
+package com.dccf.Config;
 
 import net.sf.log4jdbc.sql.jdbcapi.DataSourceSpy;
 import org.springframework.beans.factory.annotation.Autowired;

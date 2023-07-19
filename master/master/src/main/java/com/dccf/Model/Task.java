@@ -1,23 +1,24 @@
 package com.dccf.Model;
 
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.util.*;
 
 @Data
 public class Task {
-    private List<File> taskFiles;
-    private File runDockerFile;
+    private List<MultipartFile> taskFiles;
+    private MultipartFile runDockerFile;
     private UUID uuid;
     private String workerIdentifier;
     private Status status = Status.SUBMITTED;
-    private File log;
-    private List<File> returnFiles;
+    private MultipartFile log;
+    private List<MultipartFile> returnFiles;
 
-    private List<File> getReturn() {
+    private List<MultipartFile> getReturn() {
         if (status.equals(Status.COMPLETE)) {
-            return taskFiles;
+            return returnFiles;
         }
         return null;
     }
