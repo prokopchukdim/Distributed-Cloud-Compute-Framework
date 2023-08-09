@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +47,9 @@ public class WorkerService {
             workDir.delete();
         }
         workDir.mkdirs();
+
+        //create output directory
+        new File("./" + WORKDIR + "./output").mkdirs();
         try {
             Files.copy(dockerFile.getInputStream(), dockerPath.resolve("dockerfile"), StandardCopyOption.REPLACE_EXISTING);
             for (MultipartFile file : taskFiles) {
@@ -58,7 +62,7 @@ public class WorkerService {
 
         mainController.setCurrentStatus(JobStatus.PROCESSING);
         //Build dockerfile
-        String buildCommand[] = new String[]{"docker build -t job ./" + WORKDIR};
+        String[] buildCommand = new String[]{"docker build -t job ./" + WORKDIR};
         ProcessBuilder processBuilder = new ProcessBuilder(buildCommand)
                 .directory(workDir)
                 .redirectOutput(new File("buildStdout.txt"))
@@ -87,7 +91,7 @@ public class WorkerService {
                 return;
             }
 
-            String runCommand[] = new String[]{"docker run job" };
+            String[] runCommand = new String[]{"docker run job" };
             ProcessBuilder runBuilder = new ProcessBuilder(runCommand)
                     .directory(workDir)
                     .redirectOutput(new File("runStdout.txt"))
@@ -130,7 +134,7 @@ public class WorkerService {
      */
     public JobStatus checkForCompletion() throws IOException, InterruptedException {
         //List current running processes
-        String buildCommand[] = new String[]{"docker ps -q"};
+        String[]  buildCommand = new String[]{"docker ps -q"};
         ProcessBuilder processBuilder = new ProcessBuilder(buildCommand)
                 .redirectOutput(new File("./ps-result.txt"));
         Process p = processBuilder.start();
@@ -154,12 +158,27 @@ public class WorkerService {
         return serviceRunning ? JobStatus.RUNNING : JobStatus.EXITED;
     }
 
+    /**
+     * Kills all docker processes
+     * @throws IOException
+     * @throws InterruptedException
+     */
     public void killDockerProcesses() throws IOException, InterruptedException {
         // Kill processes, remove stopped containers, and delete all images
-        String buildCommand[] = new String[]{"docker kill $(docker ps -q) && docker rm $(docker ps -a -q) && docker rmi $(docker images -q)"};
+        String[] buildCommand = new String[]{"docker kill $(docker ps -q) && docker rm $(docker ps -a -q) && docker rmi $(docker images -q)"};
         ProcessBuilder processBuilder = new ProcessBuilder(buildCommand)
                 .redirectOutput(new File("./ps-result.txt"));
         Process p = processBuilder.start();
         p.waitFor();
+    }
+
+    /**
+     * Get output directory and return it if it exists
+     * @return
+     * @throws MalformedURLException
+     */
+    public File getResponseFiles() throws MalformedURLException {
+        File output = new File("./" + WORKDIR + "/output");
+        return output.isDirectory() ? output : null;
     }
 }
