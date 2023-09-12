@@ -1,8 +1,8 @@
 package com.dccf.worker.Service;
 
 import com.dccf.worker.Const.JobStatus;
-import com.dccf.worker.Controllers.MainController;
-import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -21,7 +21,6 @@ import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
 
 @Service
-@AllArgsConstructor
 @Slf4j
 public class WorkerService {
 
@@ -31,7 +30,10 @@ public class WorkerService {
 
     private final String WORKDIR = "workDir";
     private final Path dockerPath = Paths.get(WORKDIR);
-    private final MainController mainController;
+
+    @Getter
+    @Setter
+    private JobStatus currentStatus = JobStatus.NO_JOB;
 
     /**
      * Build and run the job. Updates job status.
@@ -60,7 +62,7 @@ public class WorkerService {
             throw new RuntimeException(e.getMessage());
         }
 
-        mainController.setCurrentStatus(JobStatus.PROCESSING);
+        currentStatus = JobStatus.PROCESSING;
         //Build dockerfile
         String[] buildCommand = new String[]{"docker build -t job ./" + WORKDIR};
         ProcessBuilder processBuilder = new ProcessBuilder(buildCommand)
@@ -77,7 +79,7 @@ public class WorkerService {
         CompletableFuture<Process> future = process.onExit();
         future.handle((res, ex) -> {
             if (ex != null) {
-                mainController.setCurrentStatus(JobStatus.ERROR);
+                currentStatus = JobStatus.ERROR;
                 log.error("Error during docker build: ", ex);
             }
             return res;
@@ -86,7 +88,7 @@ public class WorkerService {
         //Run dockerfile after build is complete
         future.thenRun(() -> {
 
-            if (JobStatus.ERROR.equals(mainController.getCurrentStatus())) {
+            if (JobStatus.ERROR.equals(currentStatus)) {
                 log.info("Error during docker build, skipping docker run");
                 return;
             }
@@ -97,7 +99,7 @@ public class WorkerService {
                     .redirectOutput(new File("runStdout.txt"))
                     .redirectError(new File("runStderr.txt"));
             try {
-                mainController.setCurrentStatus(JobStatus.RUNNING);
+                currentStatus = JobStatus.RUNNING;
                 runBuilder.start();
             } catch (IOException e) {
                 throw new RuntimeException(e);

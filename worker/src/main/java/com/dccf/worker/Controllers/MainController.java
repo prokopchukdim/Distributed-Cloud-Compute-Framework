@@ -3,8 +3,6 @@ package com.dccf.worker.Controllers;
 import com.dccf.worker.Const.JobStatus;
 import com.dccf.worker.Service.WorkerService;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.core.io.Resource;
@@ -26,10 +24,6 @@ public class MainController {
 
     private WorkerService workerService;
 
-    @Getter
-    @Setter
-    private JobStatus currentStatus = JobStatus.NO_JOB;
-
     /**
      * Submit a job to the worker.
      * For any job to have return files, they must be placed in the ./output directory
@@ -39,27 +33,31 @@ public class MainController {
      */
     @RequestMapping(value = "/submitJob", method = RequestMethod.POST)
     ResponseEntity<JobStatus> submitJob(@RequestParam() MultipartFile dockerFile, @RequestParam() List<MultipartFile> taskFiles, @RequestParam(required = false) Boolean override) throws IOException, InterruptedException {
+        JobStatus currentStatus = workerService.getCurrentStatus();
+
         // If there's already a job and override is False, throw a 400
         if ((override == null || !override) && !JobStatus.NO_JOB.equals(currentStatus)) {
             return ResponseEntity.status(400).body(JobStatus.ERROR);
         }
 
         workerService.killDockerProcesses();
-        currentStatus = JobStatus.PROCESSING;
+        workerService.setCurrentStatus(JobStatus.PROCESSING);
         workerService.buildAndRunImage(dockerFile, taskFiles);
         return ResponseEntity.status(200).body(currentStatus);
     }
 
     /**
-     *
+     * Get current job status.
      * @return job status
      */
     @RequestMapping(value = "/getStatus", method = RequestMethod.GET)
     ResponseEntity<JobStatus> getStatus() {
+        JobStatus currentStatus = workerService.getCurrentStatus();
+
         if (JobStatus.RUNNING.equals(currentStatus)) {
             try {
                 JobStatus realStatus = workerService.checkForCompletion();
-                currentStatus = realStatus;
+                workerService.setCurrentStatus(realStatus);
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -74,17 +72,18 @@ public class MainController {
      */
     @RequestMapping(value = "/getResult", method = RequestMethod.GET)
     ResponseEntity<File> getResult() throws IOException, InterruptedException {
+        JobStatus currentStatus = workerService.getCurrentStatus();
         if (!JobStatus.EXITED.equals(currentStatus)){
             return ResponseEntity.status(405).body(null);
         }
         File responseFile = workerService.getResponseFiles();
         workerService.killDockerProcesses();
-        currentStatus = JobStatus.NO_JOB;
+        workerService.setCurrentStatus(JobStatus.NO_JOB);
         return ResponseEntity.status(200).body(responseFile);
     }
 
     /**
-     *
+     * Get list of logs
      * @return logs
      */
     @RequestMapping(value = "/getLogs", method = RequestMethod.GET)
@@ -105,8 +104,9 @@ public class MainController {
      */
     @RequestMapping(value = "/killJob", method = RequestMethod.POST)
     ResponseEntity<JobStatus> killJob() throws IOException, InterruptedException {
+        JobStatus currentStatus = workerService.getCurrentStatus();
         workerService.killDockerProcesses();
-        currentStatus = JobStatus.NO_JOB;
+        workerService.setCurrentStatus(JobStatus.NO_JOB);
         return ResponseEntity.status(200).body(currentStatus);
     }
 }
