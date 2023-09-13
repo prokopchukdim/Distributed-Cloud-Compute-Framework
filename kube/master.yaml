@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dccf-master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dccf-master
+  template:
+    metadata:
+      labels:
+        app: dccf-master
+    spec:
+      containers:
+        - name: app
+          image: prokopchukdim/dccf-master:1.0.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: POSTGRES_URL
+              value: postgres://postgres:5432/dev
+          imagePullPolicy: Always
+---
+# Expose Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: dccf-master
+spec:
+  selector:
+    app: dccf-master
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: LoadBalancer  
+		

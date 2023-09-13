@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dccf-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dccf-worker
+  template:
+    metadata:
+      labels:
+        app: dccf-worker
+    spec:
+      containers:
+        - name: app
+          image: prokopchukdim/dccf-worker:1.0.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: POSTGRES_URL
+              value: postgres://postgres:5432/dev
+          imagePullPolicy: Always
+        nodeselector:
+          role: worker
