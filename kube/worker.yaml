@@ -21,5 +21,5 @@ spec:
             - name: POSTGRES_URL
               value: postgres://postgres:5432/dev
           imagePullPolicy: Always
-        nodeselector:
-          role: worker
+      nodeSelector:
+        role: worker

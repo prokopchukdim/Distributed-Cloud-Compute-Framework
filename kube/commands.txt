@@ -1,0 +1,7 @@
+kubectl label nodes minikube-m03 node-role.kubernetes.io/master=master
+kubectl label nodes minikube-m03 role=master
+
+kubectl label node minikube-m02 node-role.kubernetes.io/worker=worker
+kubectl label node minikube-m02 role=worker
+
+kubectl scale --replicas=3 deployment/demo-deployment

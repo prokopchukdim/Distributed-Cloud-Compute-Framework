@@ -21,6 +21,8 @@ spec:
             - name: POSTGRES_URL
               value: postgres://postgres:5432/dev
           imagePullPolicy: Always
+      nodeSelector:
+        role: master
 ---
 # Expose Service
 apiVersion: v1
@@ -33,5 +35,4 @@ spec:
   ports:
     - port: 80
       targetPort: 8080
-  type: LoadBalancer  
-		
+  type: LoadBalancer

@@ -2,9 +2,9 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: postgres-secret-config
-  type: Opaque
-  data:
-    password: cG9zdGdyZXMK
+type: Opaque
+data:
+  password: cG9zdGdyZXMK
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -79,3 +79,5 @@ spec:
         - name: storage
           persistentVolumeClaim:
             claimName: postgres-pvc
+      nodeSelector:
+        role: master
