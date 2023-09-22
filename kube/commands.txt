@@ -1,7 +1,27 @@
-kubectl label nodes minikube-m03 node-role.kubernetes.io/master=master
-kubectl label nodes minikube-m03 role=master
+minikube start --nodes 3
+
+kubectl label nodes minikube-m03 node-role.kubernetes.io/master-node=master-node
+kubectl label nodes minikube-m03 role=master-node
 
 kubectl label node minikube-m02 node-role.kubernetes.io/worker=worker
 kubectl label node minikube-m02 role=worker
 
 kubectl scale --replicas=3 deployment/demo-deployment
+
+kubectl exec -it kafka-0 -- /bin/sh
+kubectl scale statefulsets kafka --replicas=0
+
+kubectl describe service kafka
+kafka-topics.sh --create --topic test --partitions 3 --replication-factor 3 --bootstrap-server 10.244.2.13:9092,10.244.2.14:9092,10.244.2.15:9092
+
+kafka-console-producer.sh \
+  --topic test \
+  --request-required-acks all \
+  --bootstrap-server 10.244.2.16:9092,10.244.2.17:9092,10.244.2.18:9092
+
+
+kubectl config set-context --current --namespace=my-namespace
+
+
+kafka-topics.sh --create --topic test --partitions 3 --replication-factor 3 --bootstrap-server localhost:9092
+kafka-topics.sh --describe --topic test --bootstrap-server localhost:9092

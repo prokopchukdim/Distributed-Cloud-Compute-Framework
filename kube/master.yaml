@@ -22,7 +22,7 @@ spec:
               value: postgres://postgres:5432/dev
           imagePullPolicy: Always
       nodeSelector:
-        role: master
+        role: master-node
 ---
 # Expose Service
 apiVersion: v1
