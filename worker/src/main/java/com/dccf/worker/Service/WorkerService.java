@@ -36,6 +36,16 @@ public class WorkerService {
     private JobStatus currentStatus = JobStatus.NO_JOB;
 
     /**
+     * Push a job onto the worker. Will search for relevant files in DB
+     * @param jobId The ID of the job in PostgreSQL
+     */
+    public void pushJob(String jobId) {
+        setCurrentStatus(JobStatus.PROCESSING);
+        // TODO Connect to SQL
+    }
+
+
+    /**
      * Build and run the job. Updates job status.
      * @param dockerFile
      */
