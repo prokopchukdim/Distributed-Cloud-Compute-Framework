@@ -12,8 +12,6 @@ import java.util.List;
 
 @RestController
 public class MainController {
-    @Autowired
-    NamedParameterJdbcTemplate jdbcTemplate;
 
     @RequestMapping("/")
     String hello() {

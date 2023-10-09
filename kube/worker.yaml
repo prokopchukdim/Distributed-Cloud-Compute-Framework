@@ -1,3 +1,11 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: worker-secret-config
+type: Opaque
+data:
+  postgres-password: cG9zdGdyZXMK
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,7 +27,12 @@ spec:
             - containerPort: 8080
           env:
             - name: POSTGRES_URL
-              value: postgres://postgres:5432/dev
+              value: postgres.default:5432
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: worker-secret-config
+                  key: postgres-password
           imagePullPolicy: Always
       nodeSelector:
         role: worker
