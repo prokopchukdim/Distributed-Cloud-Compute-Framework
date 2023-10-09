@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${POSTGRES_URL}/dccf
+    url: jdbc:postgresql://postgres.default:5432/dccf
     username: postgres
-    password: ${POSTGRES_PASSWORD}
+    password: postgres
     driver-class-name: org.postgresql.Driver
 
   jpa:

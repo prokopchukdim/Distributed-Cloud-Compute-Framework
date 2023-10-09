@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "file_table")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -16,11 +17,12 @@ import lombok.NoArgsConstructor;
 public class FileEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private int fileId;
+    @Column(name = "file_id")
+    private long fileId;
 
+//    @JoinColumn(name = "task_id", nullable = false)
     @ManyToOne()
-    @JoinColumn(name = "task_id", nullable = false)
-    private int taskId;
+    private TaskEntity taskEntity;
 
     @Column(name = "type", nullable = false)
     FileType fileType;

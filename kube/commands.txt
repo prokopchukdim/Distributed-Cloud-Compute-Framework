@@ -1,5 +1,7 @@
 minikube start --nodes 3
 
+minikube tunnel
+
 kubectl label nodes minikube-m03 node-role.kubernetes.io/master-node=master-node
 kubectl label nodes minikube-m03 role=master-node
 
@@ -26,3 +28,5 @@ kubectl config set-context --current --namespace=my-namespace
 kubectl exec -it kafka-0 -- /bin/sh
 kafka-topics.sh --create --topic jobIdTopic--partitions 3 --replication-factor 3 --bootstrap-server localhost:9092
 kafka-topics.sh --describe --topic jobIdTopic--bootstrap-server localhost:9092
+
+
