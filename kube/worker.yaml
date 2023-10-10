@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: prokopchukdim/dccf-worker:1.0.3
+          image: prokopchukdim/dccf-worker:1.0.5
           ports:
             - containerPort: 8080
           env:
@@ -33,6 +33,10 @@ spec:
                 secretKeyRef:
                   name: worker-secret-config
                   key: postgres-password
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           imagePullPolicy: Always
       nodeSelector:
         role: worker

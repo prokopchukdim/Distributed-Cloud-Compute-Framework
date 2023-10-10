@@ -1,7 +1,6 @@
-package com.dccf.Entity;
+package com.dccf.worker.Entity;
 
-import com.dccf.Model.FileType;
-import com.dccf.Model.Status;
+import com.dccf.worker.Model.FileType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

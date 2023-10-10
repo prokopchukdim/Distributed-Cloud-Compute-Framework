@@ -1,11 +1,20 @@
 package com.dccf.worker.Service;
 
 import com.dccf.worker.Const.JobStatus;
+import com.dccf.worker.Entity.FileEntity;
+import com.dccf.worker.Entity.TaskEntity;
+import com.dccf.worker.Model.FileType;
+import com.dccf.worker.Model.Status;
+import com.dccf.worker.Repository.FileRepository;
+import com.dccf.worker.Repository.TaskRepository;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tomcat.util.http.fileupload.FileUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,6 +26,7 @@ import java.net.MalformedURLException;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
 
@@ -24,24 +34,58 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class WorkerService {
 
-    private List<MultipartFile> taskFiles = new ArrayList<>();
-    private MultipartFile dockerFile;
+    @Autowired
+    FileRepository fileRepository;
+    @Autowired
+    TaskRepository taskRepository;
+
+
     private List<MultipartFile> responseFiles = new ArrayList<>();
 
-    private final String WORKDIR = "workDir";
+    private final String WORKDIR = "/data/workdir/";
     private final Path dockerPath = Paths.get(WORKDIR);
 
     @Getter
     @Setter
     private JobStatus currentStatus = JobStatus.NO_JOB;
 
+    @Getter
+    private TaskEntity currentTaskEntity = null;
+
     /**
-     * Push a job onto the worker. Will search for relevant files in DB
+     * Push a job to the worker. Will search for relevant files in DB and initiate job
      * @param jobId The ID of the job in PostgreSQL
      */
-    public void pushJob(String jobId) {
+    public void pushJob(String jobId) throws IOException {
         setCurrentStatus(JobStatus.PROCESSING);
-        // TODO Connect to SQL
+        this.currentTaskEntity = null;
+        long taskId = Long.valueOf(jobId);
+
+        var optionalTaskEntity = taskRepository.findById(taskId);
+        if (!optionalTaskEntity.isPresent()) {
+            throw new RuntimeException("Could not task in DB");
+        }
+        TaskEntity taskEntity = optionalTaskEntity.get();
+        this.currentTaskEntity = taskEntity;
+
+        taskEntity.setStatus(Status.PROCESSING);
+        taskEntity.setWorkerIdentifier(System.getenv("POD_NAME"));
+        taskRepository.save(taskEntity);
+
+        List<FileEntity> fileEntities = fileRepository.findAllByTaskId(taskId);
+        MultipartFile dockerFile = null;
+        List<MultipartFile> taskFiles = new ArrayList<>();
+        for (var f: fileEntities) {
+            if (f.getFileType() == FileType.DOCKER) {
+                dockerFile = new MockMultipartFile(f.getName(), f.getFileData());
+            } else if (f.getFileType() == FileType.TASK) {
+                taskFiles.add(new MockMultipartFile(f.getName(), f.getFileData()));
+            }
+        }
+        if (dockerFile == null) {
+            throw new RuntimeException("Could not find valid Dockerfile");
+        }
+        buildAndRunImage(dockerFile, taskFiles);
     }
 
 
@@ -49,19 +93,19 @@ public class WorkerService {
      * Build and run the job. Updates job status.
      * @param dockerFile
      */
-    public void buildAndRunImage(MultipartFile dockerFile, List<MultipartFile> taskFiles) {
-        this.taskFiles = taskFiles;
-        this.dockerFile = dockerFile;
+    public void buildAndRunImage(MultipartFile dockerFile, List<MultipartFile> taskFiles) throws IOException {
 
         // Create a directory for the dockerFile and taskFiles
-        File workDir = new File("./" + WORKDIR);
+        File workDir = new File(WORKDIR);
         if (workDir.exists()) {
+            FileUtils.cleanDirectory(workDir);
             workDir.delete();
         }
         workDir.mkdirs();
 
         //create output directory
-        new File("./" + WORKDIR + "./output").mkdirs();
+        File outputDir = new File(WORKDIR + "output");
+        outputDir.mkdirs();
         try {
             Files.copy(dockerFile.getInputStream(), dockerPath.resolve("dockerfile"), StandardCopyOption.REPLACE_EXISTING);
             for (MultipartFile file : taskFiles) {
@@ -74,11 +118,11 @@ public class WorkerService {
 
         currentStatus = JobStatus.PROCESSING;
         //Build dockerfile
-        String[] buildCommand = new String[]{"docker build -t job ./" + WORKDIR};
+        String[] buildCommand = new String[]{"docker build -t job " + WORKDIR};
         ProcessBuilder processBuilder = new ProcessBuilder(buildCommand)
                 .directory(workDir)
-                .redirectOutput(new File("buildStdout.txt"))
-                .redirectError(new File("buildStderr.txt"));
+                .redirectOutput(new File("output/logs/buildStdout.txt"))
+                .redirectError(new File("output/logs/buildStderr.txt"));
         Process process;
         try {
             process = processBuilder.start();
@@ -105,9 +149,9 @@ public class WorkerService {
 
             String[] runCommand = new String[]{"docker run job" };
             ProcessBuilder runBuilder = new ProcessBuilder(runCommand)
-                    .directory(workDir)
-                    .redirectOutput(new File("runStdout.txt"))
-                    .redirectError(new File("runStderr.txt"));
+                    .directory(outputDir)
+                    .redirectOutput(new File("logs/runStdout.txt"))
+                    .redirectError(new File("logs/runStderr.txt"));
             try {
                 currentStatus = JobStatus.RUNNING;
                 runBuilder.start();
@@ -126,7 +170,7 @@ public class WorkerService {
         String[] logPaths = {"/buildStdout.txt", "/buildStderr.txt", "/runStdout.txt", "/runStderr.txt"};
         List<Resource> logList = new ArrayList<>();
         for (String fileName : logPaths) {
-            Path filePath = Paths.get("./" + WORKDIR + fileName);
+            Path filePath = Paths.get(WORKDIR + fileName);
             Resource resource = new UrlResource(filePath.toUri());
             if (resource.exists()) {
                 logList.add(resource);

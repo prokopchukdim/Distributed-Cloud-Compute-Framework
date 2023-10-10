@@ -1,5 +1,5 @@
 package com.dccf.worker.Const;
 
 public enum JobStatus {
-    NO_JOB, PROCESSING, EXITED, RUNNING, ERROR;
+    NO_JOB, LISTENING, PROCESSING, EXITED, RUNNING, ERROR;
 }

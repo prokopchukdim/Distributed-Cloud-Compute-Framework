@@ -7,6 +7,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+
 @Service
 @Slf4j
 public class KafkaListenerService {
@@ -19,8 +21,8 @@ public class KafkaListenerService {
     private static ConstantProvider constantProvider;
 
     @KafkaListener(id="listenerSingleton"/*constantProvider.LISTENER_ID*/, autoStartup = "true", topics = "jobIdTopic")
-    public void consume(String message) {
-        log.info("Received Message: {}", message);
+    public void consume(String message) throws IOException {
+        log.info("Received task id: {}", message);
         kafkaListenerEndpointRegistry.getListenerContainer(constantProvider.LISTENER_ID).stop(() -> {
             log.info("Listener paused for processing");
         });
