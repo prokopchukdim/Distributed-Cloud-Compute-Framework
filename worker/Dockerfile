@@ -4,8 +4,8 @@ FROM docker:24.0.6-dind-alpine3.18
 RUN apk update && \
     apk add openjdk17-jre-headless java-cacerts && \
     update-ca-certificates -f
-RUN apk add openrc docker-openrc --no-cache
-RUN mkdir -p /run/openrc/exclusive && mkdir -p /run/openrc && touch /run/openrc/softlevel
+# RUN apk add openrc docker-openrc --no-cache
+# RUN mkdir -p /run/openrc/exclusive && mkdir -p /run/openrc && touch /run/openrc/softlevel
 
 COPY target/worker-1.0-SNAPSHOT.jar worker-1.0-SNAPSHOT.jar
 EXPOSE 8080

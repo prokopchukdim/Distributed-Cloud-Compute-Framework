@@ -147,6 +147,8 @@ public class WorkerService {
                 return;
             }
 
+            // TODO This needs a future -> update SQL
+
             String[] runCommand = new String[]{"docker run job" };
             ProcessBuilder runBuilder = new ProcessBuilder(runCommand)
                     .directory(outputDir)
