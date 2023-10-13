@@ -26,8 +26,14 @@ public class TaskMasterService {
     private TaskRepository taskRepository;
     private KafkaProducerService kafkaProducerService;
 
-    @Transactional
+
     public void insertIntoQueue(MultipartFile dockerFile, MultipartFile[] taskFiles) {
+        TaskEntity taskEntity = saveInfoToDb(dockerFile, taskFiles);
+        kafkaProducerService.submitTask(Long.toString(taskEntity.getTaskId()));
+    }
+
+    @Transactional
+    private TaskEntity saveInfoToDb(MultipartFile dockerFile, MultipartFile[] taskFiles) {
         // Save task entity
         TaskEntity taskEntity = new TaskEntity();
         taskEntity.setStatus(Status.SUBMITTED);
@@ -58,8 +64,7 @@ public class TaskMasterService {
             }
             fileRepository.save(taskFile);
         }
-
-        kafkaProducerService.submitTask(Long.toString(taskEntity.getTaskId()));
+        return taskEntity;
     }
 
 }

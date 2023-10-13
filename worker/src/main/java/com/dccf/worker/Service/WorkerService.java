@@ -63,7 +63,7 @@ public class WorkerService {
 
         var optionalTaskEntity = taskRepository.findById(taskId);
         if (!optionalTaskEntity.isPresent()) {
-            throw new RuntimeException("Could not task in DB");
+            throw new RuntimeException("Could not find task in DB");
         }
         TaskEntity taskEntity = optionalTaskEntity.get();
         this.currentTaskEntity = taskEntity;
@@ -104,7 +104,7 @@ public class WorkerService {
         workDir.mkdirs();
 
         //create output directory
-        File outputDir = new File(WORKDIR + "output");
+        File outputDir = new File(WORKDIR + "output/");
         outputDir.mkdirs();
         try {
             Files.copy(dockerFile.getInputStream(), dockerPath.resolve("dockerfile"), StandardCopyOption.REPLACE_EXISTING);
@@ -119,9 +119,9 @@ public class WorkerService {
         //Build dockerfile
         String[] buildCommand = new String[]{"docker build -t job " + WORKDIR};
         ProcessBuilder processBuilder = new ProcessBuilder(buildCommand)
-                .directory(workDir)
-                .redirectOutput(new File("output/logs/buildStdout.txt"))
-                .redirectError(new File("output/logs/buildStderr.txt"));
+                .directory(outputDir)
+                .redirectOutput(new File(workDir,"logs/buildStdout.txt"))
+                .redirectError(new File(workDir,"logs/buildStderr.txt"));
         Process process;
         try {
             process = processBuilder.start();
@@ -151,12 +151,12 @@ public class WorkerService {
             String[] runCommand = new String[]{"docker run job" };
             ProcessBuilder runBuilder = new ProcessBuilder(runCommand)
                     .directory(outputDir)
-                    .redirectOutput(new File("logs/runStdout.txt"))
-                    .redirectError(new File("logs/runStderr.txt"));
+                    .redirectOutput(new File(workDir,"logs/runStdout.txt"))
+                    .redirectError(new File(workDir,"logs/runStderr.txt"));
             Process runProcess;
             try {
                 currentStatus = JobStatus.RUNNING;
-                runBuilder.start();
+                runProcess = runBuilder.start();
             } catch (IOException e) {
                 currentStatus = JobStatus.ERROR;
                 currentTaskEntity.setStatus(Status.ERROR);
@@ -164,18 +164,64 @@ public class WorkerService {
                 throw new RuntimeException(e);
             }
 
-            CompletableFuture<Process> runFuture = process.onExit();
-            future.handle((res, ex) -> {
+            CompletableFuture<Process> runFuture = runProcess.onExit();
+            runFuture.handle((res, ex) -> {
                 if (ex != null) {
                     currentStatus = JobStatus.ERROR;
                     currentTaskEntity.setStatus(Status.ERROR);
                     taskRepository.save(currentTaskEntity);
                     log.error("Error during docker run: ", ex);
                 }
+                else {
+                    try {
+                        log.info("Completed current task, saving results");
+
+                        List<MultipartFile> outputFiles = getFileList(outputDir);
+                        List<MultipartFile> logFiles = getFileList(new File(outputDir, "logs/"));
+                        saveFilesToRepo(logFiles, FileType.LOG);
+                        saveFilesToRepo(outputFiles, FileType.RETURN);
+
+                        currentStatus = JobStatus.EXITED;
+                        currentTaskEntity.setStatus(Status.COMPLETE);
+                        taskRepository.save(currentTaskEntity);
+                        log.info("Completed current task, results saved");
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
                 return res;
-                // TODO update SQL
             });
         });
+    }
+
+    /**
+     * Get list of MultipartFile files from a directory dir.
+     */
+    private List<MultipartFile> getFileList(File dir) throws IOException {
+        if (dir == null) {
+            throw new NullPointerException();
+        }
+
+        List<MultipartFile> fileList = new ArrayList<>();
+        if (dir.isDirectory()) {
+            for (File f : dir.listFiles()) {
+                fileList.add(new MockMultipartFile(f.getName(), org.apache.commons.io.FileUtils.readFileToByteArray(f)));
+            }
+        }
+        else {
+            throw new RuntimeException("Failed to get files from" + dir.getName());
+        }
+        return fileList;
+    }
+
+    private void saveFilesToRepo(List<MultipartFile> files, FileType fileType) throws IOException {
+        for (MultipartFile f : files) {
+            FileEntity taskFile = new FileEntity();
+            taskFile.setFileType(fileType);
+            taskFile.setTaskEntity(currentTaskEntity);
+            taskFile.setFileData(f.getBytes());
+            fileRepository.save(taskFile);
+        }
     }
 
     /**
@@ -196,7 +242,7 @@ public class WorkerService {
                 log.debug("Could not resolve log file: {}", fileName);
             }
         }
-        return new ArrayList<>();
+        return logList;
     }
 
     /**

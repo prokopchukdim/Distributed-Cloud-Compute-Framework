@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: prokopchukdim/dccf-worker:1.0.6
+          image: prokopchukdim/dccf-worker:1.0.7
           ports:
             - containerPort: 8080
           env:
