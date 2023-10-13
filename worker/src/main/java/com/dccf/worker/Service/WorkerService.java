@@ -116,7 +116,6 @@ public class WorkerService {
             throw new RuntimeException(e.getMessage());
         }
 
-        currentStatus = JobStatus.PROCESSING;
         //Build dockerfile
         String[] buildCommand = new String[]{"docker build -t job " + WORKDIR};
         ProcessBuilder processBuilder = new ProcessBuilder(buildCommand)
@@ -134,6 +133,8 @@ public class WorkerService {
         future.handle((res, ex) -> {
             if (ex != null) {
                 currentStatus = JobStatus.ERROR;
+                currentTaskEntity.setStatus(Status.ERROR);
+                taskRepository.save(currentTaskEntity);
                 log.error("Error during docker build: ", ex);
             }
             return res;
@@ -147,19 +148,33 @@ public class WorkerService {
                 return;
             }
 
-            // TODO This needs a future -> update SQL
-
             String[] runCommand = new String[]{"docker run job" };
             ProcessBuilder runBuilder = new ProcessBuilder(runCommand)
                     .directory(outputDir)
                     .redirectOutput(new File("logs/runStdout.txt"))
                     .redirectError(new File("logs/runStderr.txt"));
+            Process runProcess;
             try {
                 currentStatus = JobStatus.RUNNING;
                 runBuilder.start();
             } catch (IOException e) {
+                currentStatus = JobStatus.ERROR;
+                currentTaskEntity.setStatus(Status.ERROR);
+                taskRepository.save(currentTaskEntity);
                 throw new RuntimeException(e);
             }
+
+            CompletableFuture<Process> runFuture = process.onExit();
+            future.handle((res, ex) -> {
+                if (ex != null) {
+                    currentStatus = JobStatus.ERROR;
+                    currentTaskEntity.setStatus(Status.ERROR);
+                    taskRepository.save(currentTaskEntity);
+                    log.error("Error during docker run: ", ex);
+                }
+                return res;
+                // TODO update SQL
+            });
         });
     }
 
