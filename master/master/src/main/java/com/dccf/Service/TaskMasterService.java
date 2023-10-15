@@ -16,6 +16,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -26,10 +28,16 @@ public class TaskMasterService {
     private TaskRepository taskRepository;
     private KafkaProducerService kafkaProducerService;
 
-
-    public void insertIntoQueue(MultipartFile dockerFile, MultipartFile[] taskFiles) {
+    /**
+     * Insert a job into the job queue
+     * @param dockerFile Dockerfile for job
+     * @param taskFiles Array of files necessary for the Dockerfile to execute the task.
+     * @return Job ID
+     */
+    public long insertIntoQueue(MultipartFile dockerFile, MultipartFile[] taskFiles) {
         TaskEntity taskEntity = saveInfoToDb(dockerFile, taskFiles);
         kafkaProducerService.submitTask(Long.toString(taskEntity.getTaskId()));
+        return taskEntity.getTaskId();
     }
 
     @Transactional
@@ -69,4 +77,25 @@ public class TaskMasterService {
         return taskEntity;
     }
 
+    /**
+     * Get status of a current job
+     * @param jobId identifier of job. Returned when creating a job.
+     * @return Job status.
+     */
+    public Status getJobStatus(long jobId) {
+        Optional<TaskEntity> entity = taskRepository.findById(jobId);
+        if (entity.isEmpty()) {
+            throw new NoSuchElementException("Failed to find task by given id");
+        }
+        return entity.get().getStatus();
+    }
+
+    /**
+     * Get resulting files of job
+     * @param jobId
+     * @return
+     */
+    public FileEntity[] getResultingFiles(long jobId) {
+        return (FileEntity[]) fileRepository.findAllResultsByTaskId(jobId).toArray();
+    }
 }

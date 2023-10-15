@@ -1,14 +1,13 @@
 package com.dccf.Controllers;
 
+import com.dccf.Entity.FileEntity;
+import com.dccf.Model.Status;
 import com.dccf.Repository.TaskRepository;
-import com.dccf.Repository.TestRepository;
 import com.dccf.Service.TaskMasterService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
-import org.apache.kafka.common.protocol.types.Field;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,8 +28,6 @@ public class MainController {
     @Autowired
     TaskRepository taskRepository;
 
-    @Autowired
-    TestRepository testRepository;
 
     @RequestMapping("/")
     String hello() {
@@ -44,28 +41,29 @@ public class MainController {
         return ResponseEntity.status(200).body("ok");
     }
 
-    @RequestMapping("/testSQL/")
-    ResponseEntity<String>  test() throws JsonProcessingException {
+    @RequestMapping("/getJobStatus")
+    ResponseEntity<Status> getStatus(long jobId) {
+        log.info("Received request to get status of job: {}", jobId);
+        return ResponseEntity.status(200).body(taskMasterService.getJobStatus(jobId));
+    }
+
+    @RequestMapping("/getResultingFiles")
+    ResponseEntity<FileEntity[]> getResults(long jobId){
+        log.info("Received request to get results of job: {}", jobId);
+        // Verify that job exists first
+        taskMasterService.getJobStatus(jobId);
+
+        return ResponseEntity.status(200).body(taskMasterService.getResultingFiles(jobId));
+    }
+
+    @RequestMapping("/testSQL")
+    ResponseEntity<String> test() throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         return ResponseEntity.status(200).body(objectMapper.writeValueAsString(taskRepository.findAll()));
     }
 
-    @RequestMapping("/testInsert/")
-    @Transactional
-    ResponseEntity<String> testTest() {
-        testRepository.insertNewMisc("misc");
-        return ResponseEntity.status(200).body("ok");
-    }
-
-    @RequestMapping("/testInsertRetrieve")
-    ResponseEntity<String> testTestRetreive() throws JsonProcessingException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        return ResponseEntity.status(200).body(objectMapper.writeValueAsString(testRepository.findAll()));
-    }
-
     @RequestMapping(value = "/submitDemo", method = RequestMethod.POST)
-    ResponseEntity<String> submitTestJob() throws IOException {
-        // TODO should return generated job ID
+    ResponseEntity<Long> submitTestJob() throws IOException {
         log.info("Submitting a mock job");
         File dockerFile = new File("/DemoResources/dockerfile");
         File entryPoint = new File("/DemoResources/entrypoint.sh");
@@ -77,7 +75,7 @@ public class MainController {
         MultipartFile dockerFileMultipart = new MockMultipartFile("dockerfile", FileUtils.readFileToByteArray(dockerFile));
         MultipartFile entryPointMultipart = new MockMultipartFile("entrypoint.sh", FileUtils.readFileToByteArray(entryPoint));
         MultipartFile[] taskFiles = {entryPointMultipart};
-        taskMasterService.insertIntoQueue(dockerFileMultipart, taskFiles);
-        return ResponseEntity.status(200).body("ok");
+
+        return ResponseEntity.status(200).body(taskMasterService.insertIntoQueue(dockerFileMultipart, taskFiles));
     }
 }
