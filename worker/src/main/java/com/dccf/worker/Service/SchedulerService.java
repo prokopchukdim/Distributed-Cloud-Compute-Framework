@@ -24,8 +24,15 @@ public class SchedulerService {
     public void kafkaListenerManager() {
         if (JobStatus.NO_JOB.equals(workerService.getCurrentStatus()) || JobStatus.EXITED.equals(workerService.getCurrentStatus())) {
             log.info("Detected no current job, re-enabling listener");
+
+            var listenerContainer = kafkaListenerEndpointRegistry.getListenerContainer(constantProvider.LISTENER_ID);
+
+            if (!listenerContainer.isRunning()) {
+                listenerContainer.start();
+            } else if (listenerContainer.isContainerPaused()) {
+                listenerContainer.resume();
+            }
             workerService.setCurrentStatus(JobStatus.LISTENING);
-            kafkaListenerEndpointRegistry.getListenerContainer(constantProvider.LISTENER_ID).start();
         }
     }
 }

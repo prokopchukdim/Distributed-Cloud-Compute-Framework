@@ -7,6 +7,7 @@ import com.dccf.worker.Model.FileType;
 import com.dccf.worker.Model.Status;
 import com.dccf.worker.Repository.FileRepository;
 import com.dccf.worker.Repository.TaskRepository;
+import jakarta.transaction.Transactional;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +27,6 @@ import java.net.MalformedURLException;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
 
@@ -39,9 +39,12 @@ public class WorkerService {
     @Autowired
     TaskRepository taskRepository;
 
-
     private List<MultipartFile> responseFiles = new ArrayList<>();
 
+    // Changing the working directory will require updating the docker run command for
+    // running the custom job. Moreover, the kubernetes config for the worker will need an update
+    // since the job output directory is actually hosted on the docker daemon container and linked to the
+    // worker container (see the job-output volumeMount).
     private final String WORKDIR = "/data/workdir/";
     private final Path dockerPath = Paths.get(WORKDIR);
 
@@ -57,22 +60,10 @@ public class WorkerService {
      * @param jobId The ID of the job in PostgreSQL
      */
     public void pushJob(String jobId) throws IOException {
-        setCurrentStatus(JobStatus.PROCESSING);
-        this.currentTaskEntity = null;
         long taskId = Long.valueOf(jobId);
+        confirmTaskInDB(taskId);
 
-        var optionalTaskEntity = taskRepository.findById(taskId);
-        if (!optionalTaskEntity.isPresent()) {
-            throw new RuntimeException("Could not find task in DB");
-        }
-        TaskEntity taskEntity = optionalTaskEntity.get();
-        this.currentTaskEntity = taskEntity;
-
-        taskEntity.setStatus(Status.PROCESSING);
-        taskEntity.setWorkerIdentifier(System.getenv("POD_NAME"));
-        taskRepository.save(taskEntity);
-
-        List<FileEntity> fileEntities = fileRepository.findAllByTaskId(taskId);
+        List<FileEntity> fileEntities = getTaskFiles(taskId);
         MultipartFile dockerFile = null;
         List<MultipartFile> taskFiles = new ArrayList<>();
         for (var f: fileEntities) {
@@ -88,6 +79,30 @@ public class WorkerService {
         buildAndRunImage(dockerFile, taskFiles);
     }
 
+    @Transactional
+    List<FileEntity> getTaskFiles(long taskId) {
+        return fileRepository.findAllByTaskId(taskId);
+    }
+
+    /**
+     * Update task info in DB with consumer id
+     */
+    @Transactional
+    private void confirmTaskInDB(long taskId) {
+        setCurrentStatus(JobStatus.PROCESSING);
+        this.currentTaskEntity = null;
+
+        var optionalTaskEntity = taskRepository.findById(taskId);
+        if (!optionalTaskEntity.isPresent()) {
+            throw new RuntimeException("Could not find task in DB");
+        }
+        TaskEntity taskEntity = optionalTaskEntity.get();
+        this.currentTaskEntity = taskEntity;
+
+        taskEntity.setStatus(Status.PROCESSING);
+        taskEntity.setWorkerIdentifier(System.getenv("POD_NAME"));
+        taskRepository.save(taskEntity);
+    }
 
     /**
      * Build and run the job. Updates job status.
@@ -104,8 +119,15 @@ public class WorkerService {
         workDir.mkdirs();
 
         //create output directory
-        File outputDir = new File(WORKDIR + "output/");
-        outputDir.mkdirs();
+//        File outputDir = new File(WORKDIR + "output/");
+        File outputDir = new File("/data/output");
+        if (outputDir.exists()) {
+            FileUtils.cleanDirectory(outputDir);
+        }
+        else {
+            outputDir.mkdirs();
+        }
+
         try {
             Files.copy(dockerFile.getInputStream(), dockerPath.resolve("dockerfile"), StandardCopyOption.REPLACE_EXISTING);
             for (MultipartFile file : taskFiles) {
@@ -116,12 +138,23 @@ public class WorkerService {
             throw new RuntimeException(e.getMessage());
         }
 
+        //Create build logs
+        File logDir = new File(workDir, "logs/");
+        if (!logDir.exists()) {
+            logDir.mkdirs();
+        }
+
+        File buildOut = new File(logDir,"buildStdout.txt");
+        buildOut.createNewFile();
+        File buildErr = new File(logDir,"buildStderr.txt");
+        buildErr.createNewFile();
+
         //Build dockerfile
-        String[] buildCommand = new String[]{"docker build -t job " + WORKDIR};
+        String[] buildCommand = new String[]{"docker", "build", ".","-t","job"};
         ProcessBuilder processBuilder = new ProcessBuilder(buildCommand)
-                .directory(outputDir)
-                .redirectOutput(new File(workDir,"logs/buildStdout.txt"))
-                .redirectError(new File(workDir,"logs/buildStderr.txt"));
+                .directory(workDir)
+                .redirectOutput(buildOut)
+                .redirectError(buildErr);
         Process process;
         try {
             process = processBuilder.start();
@@ -148,11 +181,22 @@ public class WorkerService {
                 return;
             }
 
-            String[] runCommand = new String[]{"docker run job" };
+            log.info("Running current task");
+
+            File runOut = new File(logDir,"runStdout.txt");
+            File runErr = new File(logDir,"runStderr.txt");
+            try {
+                runOut.createNewFile();
+                runErr.createNewFile();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            String[] runCommand = new String[]{"docker", "run", "-v", "/data/output:/output", "job"};
             ProcessBuilder runBuilder = new ProcessBuilder(runCommand)
                     .directory(outputDir)
-                    .redirectOutput(new File(workDir,"logs/runStdout.txt"))
-                    .redirectError(new File(workDir,"logs/runStderr.txt"));
+                    .redirectOutput(runOut)
+                    .redirectError(runErr);
             Process runProcess;
             try {
                 currentStatus = JobStatus.RUNNING;
@@ -177,7 +221,7 @@ public class WorkerService {
                         log.info("Completed current task, saving results");
 
                         List<MultipartFile> outputFiles = getFileList(outputDir);
-                        List<MultipartFile> logFiles = getFileList(new File(outputDir, "logs/"));
+                        List<MultipartFile> logFiles = getFileList(logDir);
                         saveFilesToRepo(logFiles, FileType.LOG);
                         saveFilesToRepo(outputFiles, FileType.RETURN);
 
@@ -214,14 +258,18 @@ public class WorkerService {
         return fileList;
     }
 
+    @Transactional
     private void saveFilesToRepo(List<MultipartFile> files, FileType fileType) throws IOException {
+        List<FileEntity> fileEntities = new ArrayList<>();
         for (MultipartFile f : files) {
             FileEntity taskFile = new FileEntity();
             taskFile.setFileType(fileType);
             taskFile.setTaskEntity(currentTaskEntity);
             taskFile.setFileData(f.getBytes());
-            fileRepository.save(taskFile);
+            taskFile.setName(f.getName());
+            fileEntities.add(taskFile);
         }
+        fileRepository.saveAll(fileEntities);
     }
 
     /**

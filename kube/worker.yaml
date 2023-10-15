@@ -41,6 +41,8 @@ spec:
           volumeMounts: 
             - name: docker-run
               mountPath: /var/run/
+            - name: job-output
+              mountPath: /data/output
         - name: dind-daemon
           image: docker:24.0.6-dind 
           resources: 
@@ -54,10 +56,14 @@ spec:
               mountPath: /var/lib/docker
             - name: docker-run
               mountPath: /var/run/
+            - name: job-output
+              mountPath: /data/output
       volumes: 
         - name: docker-graph-storage 
           emptyDir: {}
         - name: docker-run
+          emptyDir: {}
+        - name: job-output
           emptyDir: {}
       nodeSelector:
         role: worker

@@ -43,6 +43,7 @@ public class TaskMasterService {
         FileEntity dockerEntity = new FileEntity();
         dockerEntity.setTaskEntity(taskEntity);
         dockerEntity.setFileType(FileType.DOCKER);
+        dockerEntity.setName(dockerFile.getName());
         try {
             dockerEntity.setFileData(dockerFile.getBytes());
         } catch (IOException e) {
@@ -56,6 +57,7 @@ public class TaskMasterService {
             FileEntity taskFile = new FileEntity();
             taskFile.setFileType(FileType.TASK);
             taskFile.setTaskEntity(taskEntity);
+            taskFile.setName(f.getName());
             try {
                 taskFile.setFileData(f.getBytes());
             } catch (IOException e) {
