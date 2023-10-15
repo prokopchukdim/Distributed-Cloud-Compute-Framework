@@ -1,7 +1,7 @@
 # Distributed-Cloud-Compute-Framework
-The Distributed Cloud Compute Framework (DCCF) is a scalable distributed computing framework tailored for the cloud. More specifically, it is a Kubernetes-based architecture for running custom asynchronous dockerized tasks in a Docker-In-Docker environment.  
+The Distributed Cloud Compute Framework (DCCF) is a scalable distributed computing framework tailored for the cloud. More specifically, it is a Kubernetes-based architecture for running custom asynchronous dockerized tasks in a Docker-In-Docker environment.
 
-DCCF was created as a personal project by [prokopchukdim](https://github.com/prokopchukdim) to learn more about distributed systems, stateless APIs, containerization, event-based architectures, Docker, and Kubernetes deployments.
+DCCF was created as a personal project by [prokopchukdim](https://github.com/prokopchukdim) to learn more about distributed systems, stateless APIs, containerization, event-based architectures, Docker, and scalable Kubernetes deployments. Using DCCF, clients can upload a Dockerfile and any files needed by that Dockerfile to a REST API. DCCF will build and run that Docker image, and once the image exits, the resulting files will be available for retrieval through a REST API.  
 
 ## Architecture
 ### Overview
