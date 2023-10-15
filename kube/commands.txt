@@ -1,32 +1,44 @@
+### Collection of Useful Commands ###
+
+## Commands to start the cluster ##
+
 minikube start --nodes 3
-
-minikube tunnel
-
 kubectl label nodes minikube-m03 node-role.kubernetes.io/master-node=master-node
 kubectl label nodes minikube-m03 role=master-node
-
 kubectl label node minikube-m02 node-role.kubernetes.io/worker=worker
 kubectl label node minikube-m02 role=worker
 
-kubectl scale --replicas=3 deployment/demo-deployment
+#Expose master outside of the cluster
+minikube tunnel
 
+
+## Initial Launch ##
+
+kubectl apply -f kafka.yaml
+kubectl apply -f postgres.yaml
+
+# Create Kafka Topics BEFORE initial startup of worker or master
+kubectl exec -it kafka-0 -- /bin/sh
+kafka-topics.sh --create --topic jobIdTopic--partitions 3 --replication-factor 3 --bootstrap-server localhost:9092
+kafka-topics.sh --describe --topic jobIdTopic--bootstrap-server localhost:9092
+
+kubectl apply -f master.yaml
+kubectl apply -f postgres.yaml
+
+
+## Miscellaneous commands useful while testing deployment ##
+
+kubectl scale --replicas=3 deployment/demo-deployment
 kubectl exec -it kafka-0 -- /bin/sh
 kubectl scale statefulsets kafka --replicas=0
-
 kubectl describe service kafka
-kafka-topics.sh --create --topic test --partitions 3 --replication-factor 3 --bootstrap-server localhost:9092
 
+kafka-topics.sh --create --topic test --partitions 3 --replication-factor 3 --bootstrap-server localhost:9092
 kafka-console-producer.sh \
   --topic test \
   --request-required-acks all \
   --bootstrap-server localhost:9092
 
-
 kubectl config set-context --current --namespace=my-namespace
-
-# Needs to be done before worker is applied
-kubectl exec -it kafka-0 -- /bin/sh
-kafka-topics.sh --create --topic jobIdTopic--partitions 3 --replication-factor 3 --bootstrap-server localhost:9092
-kafka-topics.sh --describe --topic jobIdTopic--bootstrap-server localhost:9092
 
 
