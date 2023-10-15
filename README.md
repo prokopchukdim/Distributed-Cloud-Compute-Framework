@@ -5,7 +5,8 @@ DCCF was created as a personal project by [prokopchukdim](https://github.com/pro
 
 ## Architecture
 ### Overview
-![Distributed Compute Framework](https://github.com/prokopchukdim/Distributed-Cloud-Compute-Framework/assets/87666671/8fe8c964-fbf3-4d41-bddb-b5db5a0f4fb2)
+![Distributed Compute Framework](https://github.com/prokopchukdim/Distributed-Cloud-Compute-Framework/assets/87666671/244929ee-3935-4e2e-b8e4-7b44b745b485)
+
 
 Task Manager pods, also known as the Master API, contain a RESTful API for uploading & monitoring tasks, as well as retrieving results. The Master API is responsible for uploading task files and information to a PostgreSQL DB, and queueing up the task by ID to a Kafka Topic. Task Manager pods are easily horizontally scalable.
 
@@ -14,7 +15,8 @@ Task are queued up using an Apache Kafka cluster. Each broker is a separate Kube
 Each worker pod acts as a Kafka consumer through a Springboot application. Once a task is consumed from the queue, the consuming worker is responsible for retrieving the relevant task files from PostgreSQL, updating task status in PostgreSQL, mounting and executing the dockerized task using a Docker-In-Docker architecture, and returning logs and output files to PostgreSQL. These results can then be monitored by clients through the master API. Worker pods are also horizontally scalable.
 
 ### Worker Pods
-![Distributed Compute Framework - Worker](https://github.com/prokopchukdim/Distributed-Cloud-Compute-Framework/assets/87666671/92a56c1d-b134-4be4-af59-493b93c480fd)
+![Distributed Compute Framework - Worker](https://github.com/prokopchukdim/Distributed-Cloud-Compute-Framework/assets/87666671/576d9003-d2a5-429b-9d0b-a0620bfdfefe)
+
 
 To support custom dockerized tasks, each worker pod runs its own containerized Docker Daemon and Springboot application. By having a daemon local to each pod, all systems remain containerized. This also reduces security vulnerabilities stemming from running custom docker files on a system-wide docker daemon. The Spring application is responsible for orchestrating the docker-in-docker setup, consuming task ids from a kafka queue, cleaning up files and images in between running tasks, as well as fetching and updating task information from PostgreSQL. Since the task container is run using the daemon, a shared output volume is mounted pod-wide as both the Spring app and the task require access to the volume, and the daemon is responsible for mounting the volume to the task container.
 
