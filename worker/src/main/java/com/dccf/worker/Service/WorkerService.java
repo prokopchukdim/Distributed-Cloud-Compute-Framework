@@ -175,66 +175,101 @@ public class WorkerService {
 
         //Run dockerfile after build is complete
         future.thenRun(() -> {
+            runDockerfile(logDir, outputDir);
+        });
+    }
 
-            if (JobStatus.ERROR.equals(currentStatus)) {
-                log.info("Error during docker build, skipping docker run");
-                return;
-            }
+    /**
+     * Run containerized process after build was complete.
+     * @param logDir
+     * @param outputDir
+     */
+    private void runDockerfile(File logDir, File outputDir) {
+        if (JobStatus.ERROR.equals(currentStatus)) {
+            log.info("Error during docker build, skipping docker run");
+            return;
+        }
 
-            log.info("Running current task");
+        log.info("Running current task");
 
-            File runOut = new File(logDir,"runStdout.txt");
-            File runErr = new File(logDir,"runStderr.txt");
-            try {
-                runOut.createNewFile();
-                runErr.createNewFile();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+        File runOut = new File(logDir,"runStdout.txt");
+        File runErr = new File(logDir,"runStderr.txt");
+        try {
+            runOut.createNewFile();
+            runErr.createNewFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
-            String[] runCommand = new String[]{"docker", "run", "-v", "/data/output:/output", "job"};
-            ProcessBuilder runBuilder = new ProcessBuilder(runCommand)
-                    .directory(outputDir)
-                    .redirectOutput(runOut)
-                    .redirectError(runErr);
-            Process runProcess;
-            try {
-                currentStatus = JobStatus.RUNNING;
-                runProcess = runBuilder.start();
-            } catch (IOException e) {
-                currentStatus = JobStatus.ERROR;
+        String[] runCommand = new String[]{"docker", "run", "-v", "/data/output:/output", "job"};
+        ProcessBuilder runBuilder = new ProcessBuilder(runCommand)
+                .directory(outputDir)
+                .redirectOutput(runOut)
+                .redirectError(runErr);
+        Process runProcess;
+        try {
+            currentStatus = JobStatus.RUNNING;
+            runProcess = runBuilder.start();
+        } catch (IOException e) {
+            currentStatus = JobStatus.ERROR;
+            currentTaskEntity.setStatus(Status.ERROR);
+            taskRepository.save(currentTaskEntity);
+            throw new RuntimeException(e);
+        }
+
+        CompletableFuture<Process> runFuture = runProcess.onExit();
+        runFuture.handle((res, ex) -> {
+            if (ex != null) {
                 currentTaskEntity.setStatus(Status.ERROR);
                 taskRepository.save(currentTaskEntity);
-                throw new RuntimeException(e);
+                log.error("Error during docker run: ", ex);
+
+                try {
+                    pruneAllImages();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                currentStatus = JobStatus.ERROR;
             }
+            else {
+                try {
+                    log.info("Completed current task, saving results");
 
-            CompletableFuture<Process> runFuture = runProcess.onExit();
-            runFuture.handle((res, ex) -> {
-                if (ex != null) {
-                    currentStatus = JobStatus.ERROR;
-                    currentTaskEntity.setStatus(Status.ERROR);
+                    List<MultipartFile> outputFiles = getFileList(outputDir);
+                    List<MultipartFile> logFiles = getFileList(logDir);
+                    saveFilesToRepo(logFiles, FileType.LOG);
+                    saveFilesToRepo(outputFiles, FileType.RETURN);
+
+                    currentTaskEntity.setStatus(Status.COMPLETE);
                     taskRepository.save(currentTaskEntity);
-                    log.error("Error during docker run: ", ex);
-                }
-                else {
-                    try {
-                        log.info("Completed current task, saving results");
+                    log.info("Completed current task, results saved");
 
-                        List<MultipartFile> outputFiles = getFileList(outputDir);
-                        List<MultipartFile> logFiles = getFileList(logDir);
-                        saveFilesToRepo(logFiles, FileType.LOG);
-                        saveFilesToRepo(outputFiles, FileType.RETURN);
-
-                        currentStatus = JobStatus.EXITED;
-                        currentTaskEntity.setStatus(Status.COMPLETE);
-                        taskRepository.save(currentTaskEntity);
-                        log.info("Completed current task, results saved");
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
+                    pruneAllImages();
+                    currentStatus = JobStatus.EXITED;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
-                return res;
-            });
+            }
+            return res;
+        });
+    }
+
+    /**
+     * Clean up all old images after task was finished to prevent memory leaks.
+     */
+    private void pruneAllImages() throws IOException {
+        String[] command = new String[]{"docker", "image", "prune", "-af"};
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        Process process = processBuilder.start();
+        CompletableFuture<Process> future = process.onExit();
+        future.handle((res, ex) -> {
+           if (ex != null) {
+               log.error("Error pruning dangling images: {}", ex);
+           }
+           else {
+               log.info("Pruned dangling images");
+           }
+           return res;
         });
     }
 

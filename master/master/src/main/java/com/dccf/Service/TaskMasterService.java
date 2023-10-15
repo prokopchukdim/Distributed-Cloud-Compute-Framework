@@ -95,7 +95,7 @@ public class TaskMasterService {
      * @param jobId
      * @return
      */
-    public FileEntity[] getResultingFiles(long jobId) {
-        return (FileEntity[]) fileRepository.findAllResultsByTaskId(jobId).toArray();
+    public List<FileEntity> getResultingFiles(long jobId) {
+        return fileRepository.findAllResultsByTaskId(jobId);
     }
 }

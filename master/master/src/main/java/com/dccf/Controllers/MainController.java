@@ -18,6 +18,7 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @Slf4j
@@ -35,10 +36,9 @@ public class MainController {
     }
 
     @RequestMapping(value = "/submit", method = RequestMethod.POST)
-    ResponseEntity<String> submitJob(MultipartFile dockerFile, MultipartFile[] taskFiles){
+    ResponseEntity<Long> submitJob(MultipartFile dockerFile, MultipartFile[] taskFiles){
         log.info("Received request to submit job");
-        taskMasterService.insertIntoQueue(dockerFile, taskFiles);
-        return ResponseEntity.status(200).body("ok");
+        return ResponseEntity.status(200).body(taskMasterService.insertIntoQueue(dockerFile, taskFiles));
     }
 
     @RequestMapping("/getJobStatus")
@@ -48,7 +48,7 @@ public class MainController {
     }
 
     @RequestMapping("/getResultingFiles")
-    ResponseEntity<FileEntity[]> getResults(long jobId){
+    ResponseEntity<List<FileEntity>> getResults(long jobId){
         log.info("Received request to get results of job: {}", jobId);
         // Verify that job exists first
         taskMasterService.getJobStatus(jobId);

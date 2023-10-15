@@ -17,6 +17,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * Worker REST controller.
+ * WARNING: DEPRECIATED
+ * Switched to an asynchronous event-based architecture.
+ */
 @Controller
 @Slf4j
 @AllArgsConstructor
