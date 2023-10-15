@@ -1,0 +1,91 @@
+<mxfile host="app.diagrams.net" modified="2023-10-15T19:48:25.190Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36" etag="L6vTKFKHGeZr84VWFd--" version="21.6.2" type="device">
+  <diagram name="Page-1" id="LNPsIEWc0G-XSbIO982r">
+    <mxGraphModel dx="1185" dy="639" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="M1DWvYW75hTVUkg5Gfjc-19" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="440" y="340" width="500" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="M1DWvYW75hTVUkg5Gfjc-20" value="Worker Pod" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="470" y="340" width="70" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="M1DWvYW75hTVUkg5Gfjc-24" value="" style="sketch=0;html=1;dashed=0;whitespace=wrap;fillColor=#2875E2;strokeColor=#ffffff;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];verticalLabelPosition=bottom;align=center;verticalAlign=top;shape=mxgraph.kubernetes.icon;prIcon=node" parent="1" vertex="1">
+          <mxGeometry x="900" y="322" width="50" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="M1DWvYW75hTVUkg5Gfjc-28" value="Docker Daemon Container" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1ba1e2;strokeColor=#006EAF;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="490" y="590" width="410" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tfdANSGmnraCWEoobUP1-26" value="" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=https://cdn1.iconfinder.com/data/icons/unicons-line-vol-3/24/docker-128.png" parent="1" vertex="1">
+          <mxGeometry x="460" y="570" width="45" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="vNhJOH2tzTxqUbLYQpwg-1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1ba1e2;strokeColor=#006EAF;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="485" y="370" width="415" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="vNhJOH2tzTxqUbLYQpwg-2" value="Worker Container" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=0;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="500" y="370" width="110" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="vNhJOH2tzTxqUbLYQpwg-3" value="Kafka Consumer &amp;amp;&lt;br&gt;Task Orchestrator" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="400" width="140" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tfdANSGmnraCWEoobUP1-25" value="" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=https://cdn2.iconfinder.com/data/icons/boxicons-logos/24/bxl-spring-boot-128.png" parent="1" vertex="1">
+          <mxGeometry x="610" y="390" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="vNhJOH2tzTxqUbLYQpwg-4" value="" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=https://cdn1.iconfinder.com/data/icons/unicons-line-vol-3/24/docker-128.png" vertex="1" parent="1">
+          <mxGeometry x="460" y="355" width="45" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="vNhJOH2tzTxqUbLYQpwg-5" value="Docker-In-Docker Custom Task" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="730" y="400" width="150" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="vNhJOH2tzTxqUbLYQpwg-6" value="" style="shape=flexArrow;endArrow=classic;startArrow=classic;html=1;rounded=0;fillColor=#0D0D0D;" edge="1" parent="1">
+          <mxGeometry width="100" height="100" relative="1" as="geometry">
+            <mxPoint x="727" y="450" as="sourcePoint" />
+            <mxPoint x="642" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vNhJOH2tzTxqUbLYQpwg-7" value="" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=https://cdn1.iconfinder.com/data/icons/unicons-line-vol-3/24/docker-128.png" vertex="1" parent="1">
+          <mxGeometry x="710" y="385" width="45" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="vNhJOH2tzTxqUbLYQpwg-8" value="" style="shape=flexArrow;endArrow=classic;startArrow=classic;html=1;rounded=0;fillColor=#0D0D0D;" edge="1" parent="1">
+          <mxGeometry width="100" height="100" relative="1" as="geometry">
+            <mxPoint x="539" y="516" as="sourcePoint" />
+            <mxPoint x="539" y="586" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vNhJOH2tzTxqUbLYQpwg-11" value="" style="shape=flexArrow;endArrow=classic;startArrow=classic;html=1;rounded=0;fillColor=#0D0D0D;" edge="1" parent="1">
+          <mxGeometry width="100" height="100" relative="1" as="geometry">
+            <mxPoint x="850" y="515" as="sourcePoint" />
+            <mxPoint x="850" y="585" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vNhJOH2tzTxqUbLYQpwg-13" value="Shared Mounted Task Output Volume" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="625" y="520" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="vNhJOH2tzTxqUbLYQpwg-14" value="" style="edgeStyle=none;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;startArrow=classic;endSize=8;startSize=8;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="100" relative="1" as="geometry">
+            <mxPoint x="572" y="482" as="sourcePoint" />
+            <mxPoint x="675" y="529" as="targetPoint" />
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vNhJOH2tzTxqUbLYQpwg-15" value="" style="edgeStyle=none;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;startArrow=classic;endSize=8;startSize=8;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="100" relative="1" as="geometry">
+            <mxPoint x="692" y="529" as="sourcePoint" />
+            <mxPoint x="778" y="482" as="targetPoint" />
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vNhJOH2tzTxqUbLYQpwg-16" value="" style="edgeStyle=none;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;startArrow=classic;endSize=8;startSize=8;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="100" relative="1" as="geometry">
+            <mxPoint x="684.76" y="567" as="sourcePoint" />
+            <mxPoint x="684.76" y="603" as="targetPoint" />
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vNhJOH2tzTxqUbLYQpwg-17" value="" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;spacingTop=3;image=img/lib/active_directory/folder.svg;" vertex="1" parent="1">
+          <mxGeometry x="730" y="510" width="21.9" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
